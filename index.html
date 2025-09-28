@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>bitcoinX — Public Ledger</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Theme matching the dark, corporate look */
+    body { 
+        background: linear-gradient(180deg,#05060a,#071018);
+        color:#e6eef8; 
+        font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial; 
+    }
+    .glass { 
+        background: rgba(255,255,255,0.02); 
+        border: 1px solid rgba(255,255,255,0.03); 
+        backdrop-filter: blur(6px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .mono { 
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+    }
+    .bigX { 
+        font-size:1.05em; 
+        font-weight:700; 
+    }
+    /* Style for the dashboard table (Real Data view) */
+    .dashboard-table th { 
+        text-align: left; 
+        padding: 10px 16px; 
+        border-bottom: 1px solid #1f2937; 
+        background-color: rgba(26, 32, 44, 0.7); /* Slate-900 background for sticky header */
+    }
+    .dashboard-table td { 
+        padding: 10px 16px; 
+        border-bottom: 1px solid #111827; 
+        transition: background-color 0.2s;
+    }
+    .dashboard-table tbody tr:hover {
+        background-color: rgba(30, 41, 59, 0.5); /* Slate-800 hover */
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <header class="w-full py-6 px-8 flex items-center justify-between glass sticky top-0 z-10">
+    <div class="flex items-center gap-4">
+      <div class="w-14 h-14 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center font-bold text-slate-900 shadow-xl">BX</div>
+      <div>
+        <h1 class="text-2xl font-semibold">bitcoin<span class="bigX">X</span></h1>
+        <p class="text-xs text-slate-400 mt-0.5">Public Ledger — Demo</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <!-- Optional auth/user controls can go here -->
+    </div>
+  </header>
+
+  <main class="px-8 py-8 flex-1">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
+      <div>
+        <h2 class="text-3xl font-extrabold">Assets & Portfolios</h2>
+        <p class="text-sm text-slate-400 mt-1">Explore wallets, tokens and transactions. Click on any card for details.</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mt-4 sm:mt-0">
+        <div class="relative">
+          <input id="search" list="suggestions" placeholder="Search tokens, wallets, names..." class="px-4 py-2 rounded-lg bg-slate-800 text-white outline-none w-full sm:w-72 focus:ring-2 focus:ring-sky-500" />
+          <datalist id="suggestions"></datalist>
+        </div>
+        <select id="filter" class="px-3 py-2 rounded-lg bg-slate-800 text-white focus:ring-2 focus:ring-sky-500">
+          <option value="all">All</option>
+          <option value="token">Token</option>
+          <option value="wallet">Wallet</option>
+        </select>
+        <button id="refreshBtn" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 transition rounded-lg font-medium">Refresh</button>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div id="profilesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+  </main>
+
+  <!-- Global Modal for Details and Secret Dashboard -->
+  <div id="modal" class="fixed inset-0 hidden items-center justify-center z-50 p-4">
+    <div id="modalBackdrop" class="absolute inset-0 bg-black/80 z-50"></div>
+    <!-- max-w-7xl for the large dashboard view -->
+    <div class="relative z-50 max-w-7xl w-full mx-auto glass rounded-xl max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div class="p-6 flex justify-between items-start sticky top-0 bg-opacity-95 backdrop-blur-md z-50 border-b border-slate-800">
+        <div>
+          <h3 id="modalTitle" class="text-2xl font-bold">Title</h3>
+          <p id="modalSubtitle" class="text-sm text-slate-400 mono mt-1"></p>
+        </div>
+        <div class="flex gap-2">
+          <button id="modalDownload" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 transition rounded-lg text-white font-medium">Download Data</button>
+          <button id="modalClose" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 transition rounded-lg text-white font-medium">Close</button>
+        </div>
+      </div>
+
+      <div id="modalBody" class="p-6">
+        <!-- Content gets rendered here -->
+      </div>
+    </div>
+  </div>
+
+  <footer class="py-6 text-center text-slate-500 glass">© bitcoin<span class="bigX">X</span> — Demo Honeypot</footer>
+
+<script>
+/* ========= CONFIGURATION ========= */
+const HONEYPOT_LOG_ENDPOINT = 'http://localhost:3000/api/log';
+const SECRET_DATA_ENDPOINT = 'http://localhost:3000/api/secret-data'; 
+const LOCAL_SECRET_MAP = { admin: 'Admin@2025', user: 'User@2025' }; 
+
+/* ========= Geolocation State (Used for logging) ========= */
+let userLat = null;
+let userLon = null;
+let locationFetched = false;
+
+/* ========= Utilities ========= */
+const $ = id => document.getElementById(id);
+function rnd(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+/**
+ * Attempts to get the user's geolocation for logging purposes.
+ */
+function getGeolocation() {
+  if (locationFetched) return;
+  locationFetched = true;
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        userLat = position.coords.latitude;
+        userLon = position.coords.longitude;
+        postLog({ event: 'LOCATION_SUCCESS', lat: userLat, lon: userLon, note: 'Precise location obtained.' });
+      },
+      (error) => {
+        postLog({ event: 'LOCATION_FAIL', error: error.code, message: error.message });
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 } 
+    );
+  } else {
+    postLog({ event: 'LOCATION_UNSUPPORTED', note: 'Geolocation not supported by browser.' });
+  }
+}
+
+/**
+ * Posts a log entry to the backend honeypot server.
+ */
+async function postLog(payload){
+  try {
+    const logPayload = { 
+        ...payload, 
+        userAgent: navigator.userAgent,
+        ...(userLat !== null && { lat: userLat, lon: userLon })
+    }; 
+    await fetch(HONEYPOT_LOG_ENDPOINT, { 
+      method:'POST', 
+      headers:{'Content-Type':'application/json'}, 
+      body: JSON.stringify(logPayload) 
+    });
+  }
+  catch(e){ console.error("Log failed to send to server:", e); }
+}
+
+/* ========= Fake data generation (The publicly visible details) ========= */
+const TOKENS = ["BTC","ETH","USDT","USDC","XRP","SOL","ADA","DOGE","DOT","AVAX","FTT","MANA","LINK","UNI","MKR","LTC","TRX","BCH","AAVE","SUSHI","CHZ","NEAR"];
+function fmtPrice(n){ return n>=1 ? '$' + n.toLocaleString(undefined,{maximumFractionDigits:2}) : '$' + n.toFixed(6); }
+function genPrice(sym){
+  const base = {BTC:22000,ETH:1800,USDT:1,SOL:40,ADA:0.35,BNB:300}[sym]||rnd(1,200);
+  const p = base * (0.6 + Math.random()*1.8);
+  return fmtPrice(p);
+}
+function genProfiles(){
+  const list=[];
+  for(let i=0;i<TOKENS.length;i++){
+    const sym=TOKENS[i];
+    const id='BX-'+(1000+i);
+    const wallet='0x'+Array.from({length:40},()=> '0123456789abcdef'[rnd(0,15)]).join('');
+    const txCount = rnd(4,12);
+    const txs = [];
+    for(let t=0;t<txCount;t++){
+      txs.push({
+        id: id+'-TX-'+(t+1),
+        date: new Date(Date.now()-rnd(0,90)*24*3600*1000).toISOString().slice(0,10),
+        type: ["BUY","SELL","TRANSFER","DEPOSIT"][rnd(0,3)],
+        amount: '$' + (rnd(10,20000)).toLocaleString(),
+        note: `Demo ${sym} ${rnd(1,400)} units`
+      });
+    }
+    list.push({
+      id, symbol: sym, name: sym+' Fund '+(i+1),
+      balance: '$'+(rnd(1000,200000)).toLocaleString(),
+      price: genPrice(sym), wallet, kyc: { email: sym.toLowerCase()+'@example.com', dob: `${rnd(1975,2000)}-0${rnd(1,9)}-${rnd(10,28)}`, status: ["Verified","Pending"][rnd(0,1)] },
+      transactions: txs,
+      receipts: txs.slice(0,3).map((tx,j)=>({ id: id+'R'+(j+1), title: 'Receipt '+(j+1), date: tx.date, details: tx.note + ' • r#' + rnd(10000,99999) }))
+    });
+  }
+  return list;
+}
+let PROFILES = genProfiles();
+
+/* Helper to render the profile detail (First modal click) */
+function showProfileDetail(profile) {
+    const title = `${profile.name} (${profile.symbol})`;
+    const subtitle = `Current Balance: ${profile.balance}`;
+    const content = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass p-4 rounded-lg">
+                <strong>Current Price:</strong>
+                <div class="text-xl font-bold mt-1">${profile.price}</div>
+                <div class="text-sm text-slate-400">Value of held assets: ${profile.balance}</div>
+            </div>
+            <div class="glass p-4 rounded-lg">
+                <strong>Wallet Address:</strong>
+                <div class="mono text-sm break-all mt-1">${profile.wallet}</div>
+                <div class="text-xs text-slate-400">Total Transactions: ${profile.transactions.length}</div>
+            </div>
+          
+            <div class="glass p-4 rounded-lg">
+                <strong>KYC Status:</strong>
+                <div class="text-sm font-bold mt-1">${profile.kyc.status}</div>
+                <div class="text-xs text-slate-400">Email: ${profile.kyc.email}</div>
+            </div>
+            <div class="glass p-4 rounded-lg">
+                <strong>Latest Transaction:</strong>
+                <div class="text-sm font-bold mt-1">${profile.transactions[0].type} ${profile.transactions[0].amount}</div>
+                <div class="text-xs text-slate-400">${profile.transactions[0].date}</div>
+            </div>
+        </div>
+        <div class="mt-6">
+            <h4 class="text-xl font-semibold mb-2">Available Actions</h4>
+            <p class="text-sm text-slate-400">Click a button below to view more details.</p>
+        </div>
+        <div class="mt-4 flex gap-3 flex-wrap">
+            <button data-action="price" data-id="${profile.id}" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 transition text-sm">View Price Chart</button>
+            <button data-action="history" data-id="${profile.id}" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 transition text-sm">View KYC History</button>
+            <button data-action="tx" data-id="${profile.id}" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 transition text-sm">View Full Transactions</button>
+            <button data-action="bills" data-id="${profile.id}" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 transition text-sm">View Receipts/Bills</button>
+        </div>
+    `;
+    openModal(title, subtitle, content, profile);
+
+    // Re-attach button click listeners inside the modal body
+    document.querySelectorAll('#modalBody button').forEach(button => {
+        button.onclick = (e) => {
+            e.stopPropagation(); 
+            const action = e.target.dataset.action;
+            const profile = PROFILES.find(p => p.id === e.target.dataset.id);
+            if (profile) {
+                if (action === 'price') return showPriceChartModal(profile);
+                if (action === 'history') return showKycHistoryModal(profile);
+                if (action === 'tx') return showTransactionsModal(profile);
+                if (action === 'bills') return showReceiptsModal(profile);
+            }
+        };
+    });
+    postLog({ event: 'VIEW_PROFILE', profileId: profile.id, profileName: profile.name, price: profile.price });
+}
+
+/* Updated modal rendering functions to be called by the nested buttons */
+function showTransactionsModal(profile) {
+    const title = `${profile.symbol} Transactions`;
+    const content = `<div class="space-y-3">${profile.transactions.map(tx=>`
+        <div class="glass p-3 rounded-lg flex flex-wrap justify-between items-center hover:bg-slate-800/50 transition">
+          <div>
+            <strong>${tx.type}</strong> <span class="text-sm text-slate-400">${tx.date}</span>
+            <div class="text-xs mono mt-1">${tx.note}</div>
+          </div>
+          <span class="font-mono text-lg text-emerald-400">${tx.amount}</span>
+        </div>
+    `).join('')}</div>`;
+    openModal(title, profile.wallet, content, profile);
+    postLog({ event:'ACTION', profileId:profile.id, profileName:profile.name, action: 'tx', txCount: profile.transactions.length });
+}
+
+function showReceiptsModal(profile) {
+    const title = `${profile.symbol} Receipts`;
+    const content = `<div class="space-y-3">${profile.receipts.map(r=>`
+        <div class="glass p-3 rounded-lg hover:bg-slate-800/50 transition">
+          <strong>${r.title}</strong> <span class="text-sm text-slate-400">${r.date}</span>
+          <div class="text-xs mono mt-1">${r.details}</div>
+        </div>
+    `).join('')}</div>`;
+    openModal(title, profile.wallet, content, profile);
+    postLog({ event:'ACTION', profileId:profile.id, profileName:profile.name, action: 'bills', receiptCount: profile.receipts.length });
+}
+
+function showPriceChartModal(profile) {
+    const title = `${profile.symbol} Price Chart`;
+    const content = `<div style="min-height: 300px;"><canvas id="priceChart"></canvas></div>`;
+    openModal(title, profile.wallet, content, profile);
+    renderPriceChart(profile.symbol);
+    postLog({ event:'ACTION', profileId:profile.id, profileName:profile.name, action: 'price', price: profile.price });
+}
+
+function showKycHistoryModal(profile) {
+    const title = `${profile.symbol} KYC / History`;
+    const subtitle = profile.wallet;
+    const content = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="glass p-4 rounded-lg"><strong>Wallet:</strong> <div class="mono text-sm break-all">${profile.wallet}</div></div>
+        <div class="glass p-4 rounded-lg"><strong>KYC Status:</strong> <div class="text-sm">${profile.kyc.status}</div></div>
+        <div class="glass p-4 rounded-lg col-span-1 sm:col-span-2"><strong>Email:</strong> <div class="mono text-sm">${profile.kyc.email}</div></div>
+        <div class="glass p-4 rounded-lg"><strong>DOB:</strong> <div class="mono text-sm">${profile.kyc.dob}</div></div>
+        <div class="glass p-4 rounded-lg"><strong>Last Review:</strong> <div class="mono text-sm">${new Date().toISOString().slice(0, 10)}</div></div>
+    </div>`;
+    openModal(title, subtitle, content, profile);
+    postLog({ event:'ACTION', profileId:profile.id, profileName:profile.name, action: 'history', kyc: profile.kyc.status });
+}
+
+/**
+ * Renders the real, sensitive data in a high-alert dashboard format.
+ * This is triggered ONLY by the secret token.
+ */
+function renderRealDataDashboard(realData) {
+    const totalValue = realData.assets.reduce((sum, a) => {
+        // Simple heuristic to sum the values (removes '$' and commas)
+        const val = parseFloat(a.value.replace('$', '').replace(/,/g, ''));
+        return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+    const totalAssets = realData.assets.length;
+    const formattedTotalValue = '$' + totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+    const header = `
+        <div class="p-6 rounded-lg bg-red-800/50 text-white mb-6 border-l-4 border-red-500 shadow-lg">
+            <h4 class="text-2xl font-bold">🚨 WARNING: Secure System Breach Detected!</h4>
+            <p class="text-lg mt-2">${realData.notes}</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+            <div class="glass p-4 rounded-lg">
+                <p class="text-sm text-slate-400">Total Estimated Value</p>
+                <h3 class="text-3xl font-extrabold text-emerald-400 mt-1">${formattedTotalValue}</h3>
+            </div>
+            <div class="glass p-4 rounded-lg">
+                <p class="text-sm text-slate-400">Number of Sensitive Accounts</p>
+                <h3 class="text-3xl font-extrabold mt-1">${totalAssets}</h3>
+            </div>
+            <div class="glass p-4 rounded-lg">
+                <p class="text-sm text-slate-400">Last System Update</p>
+                <h3 class="text-base font-bold mt-1">${new Date(realData.updated).toLocaleString()}</h3>
+            </div>
+        </div>
+    `;
+
+    const tableBody = realData.assets.map(a => `
+        <tr class="hover:bg-slate-900/50">
+            <td class="font-bold mono text-sm">${a.id}</td>
+            <td class="mono">${a.balance}</td>
+            <td class="font-mono text-emerald-400">${a.value}</td>
+            <td>${a.transactions.toLocaleString()}</td>
+            <td>${a.lastTx}</td>
+        </tr>
+    `).join('');
+
+    const table = `
+        <div class="glass rounded-lg overflow-x-auto mt-6">
+            <table class="w-full dashboard-table">
+                <thead class="sticky top-0">
+                    <tr>
+                        <th class="min-w-[150px]">Asset ID</th>
+                        <th class="min-w-[150px]">Balance</th>
+                        <th class="min-w-[180px]">Current Value</th>
+                        <th class="min-w-[100px]">Transactions</th>
+                        <th class="min-w-[100px]">Last Tx Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableBody}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    return header + table;
+}
+
+
+/* ========= UI render and handlers ========= */
+function renderProfiles(list){
+  const container = $('profilesGrid'); container.innerHTML = '';
+  list.forEach(p=>{
+    const card = document.createElement('div');
+    card.className = 'glass rounded-lg p-4 cursor-pointer hover:bg-slate-900/40 hover:scale-[1.02] transition shadow-md';
+    card.innerHTML = `
+      <div class="flex items-center justify-between pointer-events-none"> 
+        <div>
+          <h4 class="text-lg font-semibold">${p.symbol}</h4>
+          <p class="text-sm text-slate-400 mono">${p.name}</p>
+        </div>
+        <div class="text-right">
+          <div class="font-mono text-xl">${p.balance}</div>
+          <div class="text-xs text-slate-400">${p.price}</div>
+        </div>
+      </div>
+      <div class="mt-3 flex gap-2 flex-wrap" data-id="${p.id}">
+        <button data-action="price" data-id="${p.id}" class="px-2 py-1 rounded-full bg-slate-700 hover:bg-slate-600 transition text-xs">Price</button>
+        <button data-action="history" data-id="${p.id}" class="px-2 py-1 rounded-full bg-slate-700 hover:bg-slate-600 transition text-xs">History</button>
+        <button data-action="tx" data-id="${p.id}" class="px-2 py-1 rounded-full bg-slate-700 hover:bg-slate-600 transition text-xs">Transactions</button>
+        <button data-action="bills" data-id="${p.id}" class="px-2 py-1 rounded-full bg-slate-700 hover:bg-slate-600 transition text-xs">Bills</button>
+      </div>
+    `;
+    card.onclick = (e)=>{
+      const profile = PROFILES.find(p=>p.id===e.currentTarget.dataset.id);
+      if(!profile) return;
+
+      if(e.target.tagName==='BUTTON' && e.target.dataset.action){
+        const action = e.target.dataset.action;
+        if(action==='tx') return showTransactionsModal(profile);
+        if(action==='bills') return showReceiptsModal(profile);
+        if(action==='price') return showPriceChartModal(profile);
+        if(action==='history') return showKycHistoryModal(profile);
+      } 
+      else {
+          showProfileDetail(profile);
+      }
+    };
+    card.setAttribute('data-id', p.id); 
+    container.appendChild(card);
+  });
+}
+
+function openModal(title, subtitle, content, data){
+  $('modalTitle').textContent = title;
+  $('modalSubtitle').textContent = subtitle;
+  $('modalBody').innerHTML = content;
+  $('modal').classList.remove('hidden');
+  $('modal').classList.add('flex');
+  $('modalDownload').dataset.profile = JSON.stringify(data);
+}
+function closeModal(){
+  $('modal').classList.add('hidden');
+  $('modal').classList.remove('flex');
+}
+$('modalBackdrop').onclick = closeModal;
+$('modalClose').onclick = closeModal;
+
+// Change download button to simulate a real file download
+$('modalDownload').onclick = ()=>{
+  try {
+    const profile = JSON.parse($('modalDownload').dataset.profile);
+    const content = JSON.stringify(profile, null, 2);
+    const filename = `${profile.symbol || 'System'}-${profile.id || 'Data'}-details.json`;
+    
+    // Create a Blob object with the JSON content
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    // Create a hidden anchor element to trigger the download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url); // Clean up the object URL
+
+    console.log(`Download initiated for ${filename}`);
+  } catch (e) {
+    console.error('Download failed:', e);
+  }
+
+  postLog({ event:'DOWNLOAD_ATTEMPT', note:'User clicked download in modal' });
+};
+
+function renderPriceChart(symbol){
+  const ctx = $('priceChart').getContext('2d');
+  const data = Array.from({length: 30}, () => rnd(100, 500));
+  new Chart(ctx, {
+    type: 'line', 
+    data: { 
+        labels: Array.from({length: 30}, (v,i) => i+1), 
+        datasets: [{ 
+            label: `${symbol} Price ($)`, 
+            data: data, 
+            borderColor: 'rgb(2, 132, 199)', 
+            backgroundColor: 'rgba(2, 132, 199, 0.2)',
+            fill: true,
+            tension: 0.2 
+        }] 
+    },
+    options: { 
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { 
+            y: { beginAtZero: false, grid: { color: 'rgba(255,255,255,0.1)' } },
+            x: { grid: { display: false } }
+        },
+        plugins: { legend: { display: false } }
+    }
+  });
+}
+
+/* ========= Event Handlers & Initializers ========= */
+let searchTimeout = null;
+
+$('refreshBtn').onclick = ()=>{
+  PROFILES = genProfiles();
+  renderProfiles(PROFILES);
+  applySearchAndFilter();
+  postLog({ event:'REFRESH', note:'User refreshed data' });
+};
+
+function applySearchAndFilter(){
+  if(searchTimeout) clearTimeout(searchTimeout);
+
+  searchTimeout = setTimeout(async () => {
+    const query = $('search').value.toLowerCase();
+    const filterValue = $('filter').value;
+
+    if(query || filterValue !== 'all') {
+      await sleep(rnd(300, 700)); // Simulate API delay
+    }
+  
+    let filtered = PROFILES;
+    
+    // 1. Apply Filter
+    if(filterValue === 'token') {
+      filtered = filtered.filter(p => p.symbol);
+    } else if(filterValue === 'wallet') {
+      filtered = filtered.filter(p => p.wallet);
+    }
+
+    // 2. Apply Search
+    if(query) {
+      filtered = filtered.filter(p =>
+        p.symbol.toLowerCase().includes(query) ||
+        p.name.toLowerCase().includes(query) ||
+        p.wallet.toLowerCase().includes(query) ||
+        p.id.toLowerCase().includes(query)
+      );
+    }
+    
+    renderProfiles(filtered);
+    if(query.length > 2){
+      postLog({ event:'SEARCH', query, results:filtered.length, delay: true });
+    }
+  }, 500); 
+}
+
+$('search').addEventListener('input', applySearchAndFilter);
+$('filter').addEventListener('change', applySearchAndFilter);
+
+// initial render
+renderProfiles(PROFILES);
+getGeolocation(); 
+
+/**
+ * Checks the URL for the secret token and handles the exploit flow.
+ */
+(function tryRevealFromUrl(){
+  const params = new URLSearchParams(location.search);
+  const viewVal = params.get('view');
+  const tokenVal = params.get('token'); 
+
+  // 1. Handle Secret Token Access (The Honeypot Trigger)
+  if(tokenVal) {
+    const endpoint = location.protocol === 'file:' 
+      ? null 
+      : `${SECRET_DATA_ENDPOINT}?token=${tokenVal}`;
+
+    if(endpoint) {
+        fetch(endpoint)
+          .then(r=>r.json()).then(res=>{
+              if(res && res.success){
+                  // 💥 SUCCESS: DISPLAY THE HACKER'S EVIDENCE
+                  const dashboardContent = renderRealDataDashboard(res.data);
+                  openModal('ACCESS GRANTED: Full System Dashboard', 'Secret Token Exploit', 
+                      dashboardContent, res.data);
+                  postLog({ event:'SECRET_LINK_SUCCESS', token: tokenVal, user: 'Hacker' }); 
+              } else {
+                  // FAIL: Display rejection message
+                  openModal('Secret Token Rejected', 'Access Denied', 
+                      `<p>The provided token was invalid or expired or the server denied access.</p>
+                      <p class="mt-4 text-xs text-slate-400">Token: ${tokenVal}</p>`, 
+                      { token: tokenVal });
+                  postLog({ event:'SECRET_LINK_FAIL', token: tokenVal, message: res.message || 'Unknown' });
+              }
+          }).catch(err=>{
+              openModal('Server Error', 'Could not reach server', `<p class="text-red-400">Error: The server is down or unreachable. Check console for details.</p>`);
+              console.error("Server connection error:", err);
+          });
+          return; 
+    }
+  }
+
+  // 2. Handle Legacy Password Access (using 'view' parameter)
+  if(!viewVal) return;
+  
+  const key = prompt('Enter secret key for view='+viewVal); // Using prompt for the original legitimate flow
+  if(!key) return;
+  
+  if(location.protocol === 'file:'){
+    if(LOCAL_SECRET_MAP[viewVal] && LOCAL_SECRET_MAP[viewVal] === key){
+      openModal('Authorized — Local Real Data', viewVal, `<pre class="mono">${JSON.stringify({authorized:viewVal, data:'local-real-data'},null,2)}</pre>`, { authorized:viewVal });
+    } else {
+      console.error('Invalid local key.');
+    }
+  } else {
+    fetch('http://localhost:3000/api/real-data', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ view:viewVal, key }) })
+      .then(r=>r.json()).then(res=>{
+        if(res && res.success){
+          const dashboardContent = renderRealDataDashboard(res.data);
+          openModal('AUTHORIZED: Full System Dashboard', res.user, dashboardContent, res.data);
+          postLog({ event:'AUTH_ATTEMPT_SUCCESS', user:res.user, key });
+        } else {
+          openModal('Unauthorized Attempt', viewVal, `
+            <p>Access denied. Credentials rejected.</p>
+            <p class="mt-4 text-xs text-slate-400">The credentials ${viewVal}:${key} were used in an unauthorized attempt to access secure data.</p>
+          `, { view:viewVal, key });
+          postLog({ event:'AUTH_ATTEMPT_FAIL', user:viewVal, key });
+        }
+      }).catch(err=>{
+        openModal('Server Error', 'Could not reach server', `<p class="text-red-400">Error: ${err.message}</p>`);
+      });
+  }
+})();
+</script>
+</body>
+</html>

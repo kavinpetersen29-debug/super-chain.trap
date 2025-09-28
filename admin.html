@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>bitcoinX — Admin Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Updated styles to match index.html for a better look */
+    body { background: linear-gradient(180deg,#05060a,#071018); color:#e6eef8; font-family:Inter, sans-serif; }
+    .glass { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); }
+    .bigX { font-size:1.1em; font-weight:800; }
+    .mono { font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; }
+  </style>
+</head>
+<body class="min-h-screen flex">
+
+  <aside class="w-72 glass flex flex-col justify-between">
+    <div class="p-6">
+      <div class="flex items-center gap-3 mb-10">
+        <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center rounded-lg font-bold text-slate-900">BX</div>
+        <h2 class="text-xl font-semibold">bitcoin<span class="bigX">X</span></h2>
+      </div>
+
+      <div id="loginCard" class="mb-6">
+        <label class="block text-sm mb-1">Password</label>
+        <input id="passwordInput" type="password" placeholder="Enter password" class="w-full px-3 py-2 rounded bg-slate-800 text-white outline-none"/>
+        <button id="loginBtn" class="w-full mt-3 px-4 py-2 bg-sky-600 rounded">Login</button>
+        <p id="loginError" class="text-red-400 text-xs mt-2 hidden">❌ Invalid credentials</p>
+      </div>
+
+      <nav id="navTabs" class="hidden flex flex-col gap-2">
+        <button data-tab="real" class="px-3 py-2 rounded hover:bg-slate-800 text-left">📊 Real Data</button>
+        <button data-tab="logs" class="px-3 py-2 rounded hover:bg-slate-700 text-left">🕵 Hacker Logs</button>
+      </nav>
+    </div>
+
+    <div class="p-6 hidden" id="actions">
+      <button id="exportBtn" class="w-full px-3 py-2 mb-2 bg-emerald-600 rounded text-sm">Export Logs</button>
+      <button id="clearBtn" class="w-full px-3 py-2 bg-red-600 rounded text-sm">Clear Logs</button>
+    </div>
+  </aside>
+
+  <main class="flex-1 p-8 overflow-auto">
+    <header class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+      <div id="loggedUser" class="text-sm text-slate-400">Not logged in</div>
+    </header>
+
+    <section id="realSection" class="hidden">
+      <h2 class="text-xl font-semibold mb-4">System Assets Ledger</h2>
+      
+      <div class="glass p-4 rounded mb-6">
+          <div class="grid grid-cols-5 text-sm font-bold border-b border-slate-700 pb-2 mb-2 text-slate-400">
+              <div>Asset</div>
+              <div class="text-right">Balance</div>
+              <div class="text-right">Market Value</div>
+              <div class="text-right">Total Transactions</div>
+              <div class="text-right">Last Activity</div>
+          </div>
+          <div id="realDataGrid" class="space-y-1">
+              </div>
+      </div>
+
+      <div class="glass p-6 rounded">
+        <h3 class="font-semibold mb-2">Raw Data Dump</h3>
+        <pre id="realDataBox" class="mono text-sm overflow-auto"></pre>
+      </div>
+    </section>
+
+    <section id="logsSection" class="hidden">
+      <h2 class="text-xl font-semibold mb-4">Captured Hacker Activity</h2>
+      <div id="logsArea" class="glass p-4 rounded max-h-[70vh] overflow-auto mono text-sm"></div>
+    </section>
+  </main>
+
+<script>
+const params = new URLSearchParams(location.search);
+const view = params.get("view") || "admin";
+
+let userLogged = null;
+
+async function login(){
+  const key = document.getElementById("passwordInput").value;
+  if(!key) return;
+  try{
+    // FIX: Using absolute URL in fetch calls
+    const res = await fetch("http://localhost:3000/api/real-data", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ view, key })
+    }).then(r=>r.json());
+
+    if(res.success){
+      userLogged = res.user;
+      document.getElementById("loginCard").classList.add("hidden");
+      document.getElementById("navTabs").classList.remove("hidden");
+      document.getElementById("actions").classList.remove("hidden");
+      document.getElementById("loggedUser").textContent = "Logged in as: "+userLogged;
+      loadRealData(res.data);
+      loadLogs();
+      startPolling();
+      switchTab("real");
+    }else{
+      document.getElementById("loginError").classList.remove("hidden");
+    }
+  }catch(err){
+    document.getElementById("loginError").textContent = "⚠ Server unreachable";
+    document.getElementById("loginError").classList.remove("hidden");
+  }
+}
+document.getElementById("loginBtn").onclick = login;
+document.getElementById("passwordInput").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
+
+function switchTab(tab){
+  document.getElementById("realSection").classList.add("hidden");
+  document.getElementById("logsSection").classList.add("hidden");
+  // Highlight the current tab
+  document.querySelectorAll("#navTabs button").forEach(btn => {
+      if (btn.dataset.tab === tab) {
+          btn.classList.add('bg-slate-700');
+          btn.classList.remove('hover:bg-slate-800');
+      } else {
+          btn.classList.remove('bg-slate-700');
+          btn.classList.add('hover:bg-slate-800');
+      }
+  });
+
+  if(tab==="real") document.getElementById("realSection").classList.remove("hidden");
+  if(tab==="logs") document.getElementById("logsSection").classList.remove("hidden");
+}
+document.querySelectorAll("#navTabs button").forEach(btn=>{
+  btn.onclick=()=>switchTab(btn.dataset.tab);
+});
+
+function loadRealData(data){
+  document.getElementById("realDataBox").textContent = JSON.stringify(data,null,2);
+  const grid = document.getElementById("realDataGrid"); grid.innerHTML="";
+  
+  data.assets.forEach(a=>{
+    const item = document.createElement("div");
+    item.className="grid grid-cols-5 py-2 hover:bg-slate-800 rounded px-2 transition";
+    item.innerHTML = `
+      <div class="font-bold">${a.id}</div>
+      <div class="text-right mono">${a.balance}</div>
+      <div class="text-right mono">${a.value}</div>
+      <div class="text-right">${a.transactions.toLocaleString()}</div>
+      <div class="text-right text-slate-400 text-sm">${a.lastTx}</div>
+    `;
+    grid.appendChild(item);
+  });
+}
+
+/**
+ * Enhanced loadLogs function to display detailed hacker information.
+ */
+async function loadLogs(){
+  // FIX: Using absolute URL in fetch calls
+  const res = await fetch("http://localhost:3000/api/logs").then(r=>r.json());
+  const area = document.getElementById("logsArea");
+  area.innerHTML="";
+  if(!res.success || res.logs.length===0){
+    area.innerHTML="<div class='text-slate-400'>No activity yet</div>"; return;
+  }
+
+  res.logs.forEach((l, index)=>{
+    const details = getLogDetails(l);
+    
+    // Main container (clickable to toggle details)
+    const div=document.createElement("div");
+    div.className="border-b border-slate-800 py-3 px-2 hover:bg-slate-800/50 transition cursor-pointer rounded";
+    div.setAttribute('data-log-index', index);
+    div.innerHTML=`
+      <div class="flex justify-between items-center">
+        <div>
+          <strong class="text-emerald-400">${l.event}</strong> 
+          <span class="text-white">${l.profileName || l.user || ''} ${l.query || ''}</span>
+        </div>
+        <span class="text-xs text-slate-500">${l.time.split('T')[1].slice(0, 8)}</span>
+      </div>
+      <div class="text-xs text-slate-400 mt-1">
+        ${l.time.split('T')[0]} • IP: ${l.ip || 'N/A'} • ${details.summary}
+      </div>
+      <div id="details-${index}" class="hidden mt-3 pt-3 border-t border-slate-800 space-y-2 text-xs">
+          ${details.html}
+      </div>
+    `;
+    
+    // Toggle details on click
+    div.onclick = () => {
+        const detailDiv = document.getElementById(`details-${index}`);
+        detailDiv.classList.toggle('hidden');
+    };
+
+    area.appendChild(div);
+  });
+}
+
+/**
+ * Helper function to extract and format specific details for the log entry.
+ */
+function getLogDetails(log) {
+    let html = '';
+    let summary = '';
+    const details = [];
+
+    // Prioritize high-value data
+    if (log.event.includes('SECRET_LINK_SUCCESS')) {
+        summary = `Token Exploit! Data Dump Access.`;
+        details.push({ key: 'Exploit Token', value: log.token || 'N/A', class: 'text-red-400 font-bold' });
+    } else if (log.lat && log.lon) {
+        summary = `Location: [${log.lat.toFixed(4)}, ${log.lon.toFixed(4)}]`;
+        details.push({ key: 'Location (Lat/Lon)', value: `${log.lat}, ${log.lon}` });
+    } else if (log.event.includes('LOCATION_FAIL')) {
+        summary = `Location failed (Code: ${log.error})`;
+        details.push({ key: 'Location Error', value: log.message });
+    }
+
+    // Add general/other relevant details
+    if (log.profileId) details.push({ key: 'Profile ID', value: log.profileId });
+    if (log.action) details.push({ key: 'Action Taken', value: log.action });
+    if (log.price) details.push({ key: 'Price/Value', value: log.price });
+    if (log.kyc) details.push({ key: 'KYC Status', value: log.kyc });
+    if (log.query) details.push({ key: 'Search Query', value: log.query });
+    
+    // User Agent and IP are always useful for tracking
+    details.push({ key: 'IP Address', value: log.ip || 'N/A' });
+    details.push({ key: 'Raw User Agent', value: log.userAgent || 'N/A', fullLine: true });
+    
+    // Construct the HTML for the details section
+    details.forEach(d => {
+        if (d.fullLine) {
+            html += `<div class="pt-1"><span class="text-slate-500">${d.key}:</span> <span class="${d.class||'text-slate-300'}">${d.value}</span></div>`;
+        } else {
+            html += `<div class="inline-block w-1/2 pt-1"><span class="text-slate-500">${d.key}:</span> <span class="${d.class||'text-slate-300'}">${d.value}</span></div>`;
+        }
+    });
+
+    return { html, summary };
+}
+
+
+let pollInt=null;
+function startPolling(){
+  if(pollInt) clearInterval(pollInt);
+  pollInt=setInterval(loadLogs,5000);
+}
+
+document.getElementById("exportBtn").onclick = async ()=>{
+  // FIX: Using absolute URL in fetch calls
+  const res = await fetch("http://localhost:3000/api/logs").then(r=>r.json());
+  const blob = new Blob([JSON.stringify(res.logs,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download="hacker_logs.json"; a.click(); URL.revokeObjectURL(url);
+};
+
+// UPDATED: Now sends a POST request to the new /api/logs/clear endpoint
+document.getElementById("clearBtn").onclick = async ()=>{
+  if(!confirm("Clear all logs? This action cannot be undone.")) return;
+  
+  const res = await fetch("http://localhost:3000/api/logs/clear",{method:"POST"}).then(r=>r.json());
+  if(res.success){
+    console.log(res.message);
+  }else{
+     alert('Failed to clear logs on the server.');
+  }
+  loadLogs();
+};
+</script>
+</body>
+</html>

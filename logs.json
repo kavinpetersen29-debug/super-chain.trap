@@ -1,0 +1,207 @@
+[
+  {
+    "event": "VIEW_PROFILE",
+    "profileId": "BX-1002",
+    "profileName": "USDT Fund 3",
+    "price": "$2.02",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:10:21.250Z",
+    "ip": "::1"
+  },
+  {
+    "event": "ACTION",
+    "profileId": "BX-1005",
+    "profileName": "SOL Fund 6",
+    "action": "tx",
+    "txCount": 4,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:10:13.334Z",
+    "ip": "::1"
+  },
+  {
+    "event": "VIEW_PROFILE",
+    "profileId": "BX-1005",
+    "profileName": "SOL Fund 6",
+    "price": "$61.35",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:10:10.523Z",
+    "ip": "::1"
+  },
+  {
+    "event": "ACTION",
+    "profileId": "BX-1005",
+    "profileName": "SOL Fund 6",
+    "action": "price",
+    "price": "$61.35",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:10:05.779Z",
+    "ip": "::1"
+  },
+  {
+    "event": "VIEW_PROFILE",
+    "profileId": "BX-1005",
+    "profileName": "SOL Fund 6",
+    "price": "$61.35",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:10:02.903Z",
+    "ip": "::1"
+  },
+  {
+    "event": "ACTION",
+    "profileId": "BX-1004",
+    "profileName": "XRP Fund 5",
+    "action": "price",
+    "price": "$256.05",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:09:58.400Z",
+    "ip": "::1"
+  },
+  {
+    "event": "VIEW_PROFILE",
+    "profileId": "BX-1004",
+    "profileName": "XRP Fund 5",
+    "price": "$256.05",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:09:54.792Z",
+    "ip": "::1"
+  },
+  {
+    "event": "ACTION",
+    "profileId": "BX-1001",
+    "profileName": "ETH Fund 2",
+    "action": "price",
+    "price": "$2,942.45",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:09:45.921Z",
+    "ip": "::1"
+  },
+  {
+    "event": "VIEW_PROFILE",
+    "profileId": "BX-1001",
+    "profileName": "ETH Fund 2",
+    "price": "$2,942.45",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:09:42.453Z",
+    "ip": "::1"
+  },
+  {
+    "event": "REFRESH",
+    "note": "User refreshed data",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:09:38.485Z",
+    "ip": "::1"
+  },
+  {
+    "event": "REFRESH",
+    "note": "User refreshed data",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:09:37.073Z",
+    "ip": "::1"
+  },
+  {
+    "event": "LOCATION_SUCCESS",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "note": "Precise location obtained.",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "time": "2025-09-28T03:09:13.806Z",
+    "ip": "::1"
+  },
+  {
+    "event": "VIEW_PROFILE",
+    "profileId": "BX-1002",
+    "profileName": "USDT Fund 3",
+    "price": "$1.33",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:07:05.247Z",
+    "ip": "::1"
+  },
+  {
+    "event": "ACTION",
+    "profileId": "BX-1000",
+    "profileName": "BTC Fund 1",
+    "action": "price",
+    "price": "$21,567.88",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:06:55.261Z",
+    "ip": "::1"
+  },
+  {
+    "event": "VIEW_PROFILE",
+    "profileId": "BX-1000",
+    "profileName": "BTC Fund 1",
+    "price": "$21,567.88",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:06:46.012Z",
+    "ip": "::1"
+  },
+  {
+    "event": "LOCATION_SUCCESS",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "note": "Precise location obtained.",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "time": "2025-09-28T03:06:44.792Z",
+    "ip": "::1"
+  },
+  {
+    "event": "ACTION",
+    "profileId": "BX-1000",
+    "profileName": "BTC Fund 1",
+    "action": "price",
+    "price": "$22,700.92",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:04:24.047Z",
+    "ip": "::1"
+  },
+  {
+    "event": "VIEW_PROFILE",
+    "profileId": "BX-1000",
+    "profileName": "BTC Fund 1",
+    "price": "$22,700.92",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "time": "2025-09-28T03:04:18.275Z",
+    "ip": "::1"
+  },
+  {
+    "event": "LOCATION_SUCCESS",
+    "lat": 12.9630208,
+    "lon": 77.6404992,
+    "note": "Precise location obtained.",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "time": "2025-09-28T03:04:16.849Z",
+    "ip": "::1"
+  }
+]
