@@ -104,8 +104,9 @@
 
 <script>
 /* ========= CONFIGURATION ========= */
-const HONEYPOT_LOG_ENDPOINT = 'http://localhost:3000/api/log';
-const SECRET_DATA_ENDPOINT = 'http://localhost:3000/api/secret-data'; 
+// --- UPDATED FOR DEPLOYMENT ---
+const HONEYPOT_LOG_ENDPOINT = '/api/log'; 
+const SECRET_DATA_ENDPOINT = '/api/secret-data'; 
 const LOCAL_SECRET_MAP = { admin: 'Admin@2025', user: 'User@2025' }; 
 
 /* ========= Geolocation State (Used for logging) ========= */
@@ -594,7 +595,8 @@ getGeolocation();
       console.error('Invalid local key.');
     }
   } else {
-    fetch('http://localhost:3000/api/real-data', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ view:viewVal, key }) })
+    // UPDATED: Changed from hardcoded localhost URL to relative path
+    fetch('/api/real-data', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ view:viewVal, key }) })
       .then(r=>r.json()).then(res=>{
         if(res && res.success){
           const dashboardContent = renderRealDataDashboard(res.data);
