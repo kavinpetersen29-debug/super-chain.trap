@@ -247,7 +247,7 @@ function startPolling(){
 
 document.getElementById("exportBtn").onclick = async ()=>{
   // FIX: Using absolute URL in fetch calls
-  const res = await fetch("/api/logs").then(r=>r.json());
+  const res = await fetch("http://localhost:3000/api/logs").then(r=>r.json());
   const blob = new Blob([JSON.stringify(res.logs,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob); const a=document.createElement("a");
   a.href=url; a.download="hacker_logs.json"; a.click(); URL.revokeObjectURL(url);
@@ -257,7 +257,7 @@ document.getElementById("exportBtn").onclick = async ()=>{
 document.getElementById("clearBtn").onclick = async ()=>{
   if(!confirm("Clear all logs? This action cannot be undone.")) return;
   
-  const res = await fetch("/api/logs/clear").then(r=>r.json());
+  const res = await fetch("http://localhost:3000/api/logs/clear",{method:"POST"}).then(r=>r.json());
   if(res.success){
     console.log(res.message);
   }else{
@@ -267,5 +267,4 @@ document.getElementById("clearBtn").onclick = async ()=>{
 };
 </script>
 </body>
-
 </html>
